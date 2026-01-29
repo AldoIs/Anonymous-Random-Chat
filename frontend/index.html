@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anonymous Chat</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Landing Page -->
+        <div id="landing" class="landing">
+            <div class="logo">💬</div>
+            <h1>Anonymous Chat</h1>
+            <p class="subtitle">Connect with random people anonymously</p>
+            
+            <div class="disclaimer">
+                <strong>🔒 Privacy First</strong><br>
+                No personal data required. You are completely anonymous.
+            </div>
+            
+            <button class="btn" onclick="startChat()">Start Chat</button>
+        </div>
+
+        <!-- Waiting Screen -->
+        <div id="waiting" class="waiting hidden">
+            <div class="logo">💬</div>
+            <h2>Finding someone to chat with...</h2>
+            <div class="spinner"></div>
+            <p id="waitingMessage">Looking for a random person to connect with</p>
+            <button class="btn btn-secondary" onclick="cancelSearch()">Cancel</button>
+        </div>
+
+        <!-- Chat Interface -->
+        <div id="chatInterface" class="chat-container hidden">
+            <div class="chat-header">
+                <div class="partner-info">
+                    Chatting with: <span class="user-alias" id="partnerAlias">Anonymous</span>
+                </div>
+                <div>You are: <span class="user-alias" id="userAlias">Anonymous</span></div>
+            </div>
+            
+            <div class="chat-messages" id="chatMessages">
+                <div class="system-message">You are now connected. Say hello!</div>
+            </div>
+            
+            <div class="chat-input">
+                <input 
+                    type="text" 
+                    class="message-input" 
+                    id="messageInput" 
+                    placeholder="Type a message..." 
+                    maxlength="500"
+                    onkeypress="handleKeyPress(event)"
+                >
+                <button class="send-btn" onclick="sendMessage()" id="sendBtn">
+                    ➤
+                </button>
+            </div>
+            
+            <div class="chat-controls">
+                <button class="btn btn-secondary" onclick="nextChat()">Next Chat</button>
+                <button class="btn btn-danger" onclick="endChat()">End Chat</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
