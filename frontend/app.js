@@ -6,6 +6,13 @@ class AnonymousChat {
         this.userAlias = '';
         this.partnerAlias = '';
         this.currentRoomId = null;
+        this.currentRoomType = null;
+        this.staticRooms = [];
+        this.userStats = {
+            activeChatters: 0,
+            waitingUsers: 0,
+            totalUsers: 0
+        };
         this.isConnected = false;
         this.reconnectAttempts = 0;
         this.maxReconnectAttempts = 5;
@@ -13,6 +20,8 @@ class AnonymousChat {
         // DOM elements
         this.elements = {
             landing: document.getElementById('landing'),
+            chatOptions: document.getElementById('chatOptions'),
+            staticRooms: document.getElementById('staticRooms'),
             waiting: document.getElementById('waiting'),
             chatInterface: document.getElementById('chatInterface'),
             userAlias: document.getElementById('userAlias'),
@@ -20,7 +29,14 @@ class AnonymousChat {
             chatMessages: document.getElementById('chatMessages'),
             messageInput: document.getElementById('messageInput'),
             sendBtn: document.getElementById('sendBtn'),
-            waitingMessage: document.getElementById('waitingMessage')
+            waitingMessage: document.getElementById('waitingMessage'),
+            roomsList: document.getElementById('roomsList'),
+            activeChatters: document.getElementById('activeChatters'),
+            waitingUsers: document.getElementById('waitingUsers'),
+            totalUsers: document.getElementById('totalUsers'),
+            chatType: document.getElementById('chatType'),
+            roomUsers: document.getElementById('roomUsers'),
+            nextChatBtn: document.getElementById('nextChatBtn')
         };
         
         this.init();
@@ -82,6 +98,15 @@ class AnonymousChat {
                 this.handleMatch(data);
                 break;
                 
+            case 'joined_static_room':
+                this.handleStaticRoomJoined(data);
+                break;
+                
+            case 'user_joined':
+            case 'user_left':
+                this.handleRoomUserCountChange(data);
+                break;
+                
             case 'message':
                 this.displayMessage(data.alias, data.message, false);
                 break;
@@ -89,6 +114,14 @@ class AnonymousChat {
             case 'partner_left':
                 this.displaySystemMessage(data.message);
                 this.disableChatInput();
+                break;
+                
+            case 'user_stats':
+                this.updateUserStats(data);
+                break;
+                
+            case 'static_rooms':
+                this.updateStaticRooms(data.rooms);
                 break;
                 
             case 'error':
@@ -104,11 +137,98 @@ class AnonymousChat {
     handleMatch(data) {
         this.partnerAlias = data.partnerAlias;
         this.currentRoomId = data.roomId;
+        this.currentRoomType = 'private';
         this.elements.partnerAlias.textContent = this.partnerAlias;
+        this.elements.chatType.textContent = 'Private Chat';
+        this.elements.nextChatBtn.style.display = 'inline-block';
+        this.elements.roomUsers.style.display = 'none';
         
         this.showChatInterface();
         this.enableChatInput();
         this.displaySystemMessage(`You are now connected with ${this.partnerAlias}`);
+    }
+    
+    // Handle static room joined
+    handleStaticRoomJoined(data) {
+        this.currentRoomId = data.roomId;
+        this.currentRoomType = 'static';
+        this.elements.partnerAlias.textContent = data.roomName;
+        this.elements.chatType.textContent = 'Room';
+        this.elements.nextChatBtn.style.display = 'none'; // No next chat in static rooms
+        this.elements.roomUsers.style.display = 'inline-block';
+        this.elements.roomUsers.textContent = `${data.roomUsers} users`;
+        
+        this.showChatInterface();
+        this.enableChatInput();
+        this.displaySystemMessage(`You joined ${data.roomName}`);
+    }
+    
+    // Handle room user count change
+    handleRoomUserCountChange(data) {
+        if (this.currentRoomType === 'static') {
+            this.elements.roomUsers.textContent = `${data.roomUsers} users`;
+            
+            if (data.type === 'user_joined') {
+                this.displaySystemMessage(`${data.alias} joined the room`);
+            } else if (data.type === 'user_left') {
+                this.displaySystemMessage(`${data.alias} left the room`);
+            }
+        }
+    }
+    
+    // Update user statistics
+    updateUserStats(stats) {
+        this.userStats = stats;
+        this.elements.activeChatters.textContent = stats.activeChatters;
+        this.elements.waitingUsers.textContent = stats.waitingUsers;
+        this.elements.totalUsers.textContent = stats.totalUsers;
+    }
+    
+    // Update static rooms list
+    updateStaticRooms(rooms) {
+        this.staticRooms = rooms;
+        this.renderRoomsList();
+    }
+    
+    // Render rooms list
+    renderRoomsList() {
+        this.elements.roomsList.innerHTML = '';
+        
+        this.staticRooms.forEach(room => {
+            const roomElement = document.createElement('div');
+            roomElement.className = 'room-item';
+            roomElement.onclick = () => this.joinStaticRoom(room.id);
+            
+            const roomInfo = document.createElement('div');
+            roomInfo.className = 'room-info';
+            
+            const roomTitle = document.createElement('h3');
+            roomTitle.textContent = room.name;
+            
+            const roomDesc = document.createElement('p');
+            roomDesc.textContent = room.description;
+            
+            roomInfo.appendChild(roomTitle);
+            roomInfo.appendChild(roomDesc);
+            
+            const usersCount = document.createElement('div');
+            usersCount.className = 'room-users-count';
+            
+            if (room.currentUsers === 0) {
+                usersCount.classList.add('empty');
+            } else if (room.currentUsers >= room.maxUsers * 0.8) {
+                usersCount.classList.add('full');
+            } else if (room.currentUsers >= room.maxUsers * 0.5) {
+                usersCount.classList.add('medium');
+            }
+            
+            usersCount.textContent = `${room.currentUsers}/${room.maxUsers}`;
+            
+            roomElement.appendChild(roomInfo);
+            roomElement.appendChild(usersCount);
+            
+            this.elements.roomsList.appendChild(roomElement);
+        });
     }
     
     // Show landing page
@@ -137,12 +257,26 @@ class AnonymousChat {
     // Hide all screens
     hideAll() {
         this.elements.landing.classList.add('hidden');
+        this.elements.chatOptions.classList.add('hidden');
+        this.elements.staticRooms.classList.add('hidden');
         this.elements.waiting.classList.add('hidden');
         this.elements.chatInterface.classList.add('hidden');
     }
     
-    // Start chat - find a match
-    startChat() {
+    // Show chat options screen
+    showChatOptions() {
+        if (!this.isConnected) {
+            this.showError('Not connected to server. Please refresh the page.');
+            return;
+        }
+        
+        this.hideAll();
+        this.elements.chatOptions.classList.remove('hidden');
+        this.elements.chatOptions.classList.add('fade-in');
+    }
+    
+    // Start 1-on-1 chat
+    startOneOnOne() {
         if (!this.isConnected) {
             this.showError('Not connected to server. Please refresh the page.');
             return;
@@ -151,10 +285,50 @@ class AnonymousChat {
         this.sendToServer({ type: 'find_match' });
     }
     
+    // Show static rooms
+    showStaticRooms() {
+        this.hideAll();
+        this.elements.staticRooms.classList.remove('hidden');
+        this.elements.staticRooms.classList.add('fade-in');
+        
+        if (this.staticRooms.length === 0) {
+            this.sendToServer({ type: 'get_stats' });
+        }
+    }
+    
+    // Join static room
+    joinStaticRoom(roomId) {
+        if (!this.isConnected) {
+            this.showError('Not connected to server. Please refresh the page.');
+            return;
+        }
+        
+        this.sendToServer({ type: 'join_static_room', roomId: roomId });
+    }
+    
+    // Back to landing
+    backToLanding() {
+        this.hideAll();
+        this.elements.landing.classList.remove('hidden');
+        this.elements.landing.classList.add('fade-in');
+    }
+    
+    // Back to chat options
+    backToChatOptions() {
+        this.hideAll();
+        this.elements.chatOptions.classList.remove('hidden');
+        this.elements.chatOptions.classList.add('fade-in');
+    }
+    
+    // Start chat - find a match (legacy function)
+    startChat() {
+        this.showChatOptions();
+    }
+    
     // Cancel search
     cancelSearch() {
         this.sendToServer({ type: 'end_chat' });
-        this.showLanding();
+        this.backToChatOptions();
     }
     
     // Send message to chat partner
@@ -187,8 +361,14 @@ class AnonymousChat {
         if (!this.isConnected) return;
         
         this.clearChatMessages();
-        this.sendToServer({ type: 'end_chat' });
-        this.showLanding();
+        
+        if (this.currentRoomType === 'static') {
+            this.sendToServer({ type: 'leave_static_room' });
+            this.backToChatOptions();
+        } else {
+            this.sendToServer({ type: 'end_chat' });
+            this.backToLanding();
+        }
     }
     
     // Display message in chat
@@ -246,6 +426,7 @@ class AnonymousChat {
         this.elements.sendBtn.disabled = true;
         this.elements.messageInput.placeholder = 'Chat ended';
         this.currentRoomId = null;
+        this.currentRoomType = null;
     }
     
     // Show error message
@@ -311,6 +492,26 @@ let chatApp;
 
 function startChat() {
     chatApp.startChat();
+}
+
+function showChatOptions() {
+    chatApp.showChatOptions();
+}
+
+function startOneOnOne() {
+    chatApp.startOneOnOne();
+}
+
+function showStaticRooms() {
+    chatApp.showStaticRooms();
+}
+
+function backToLanding() {
+    chatApp.backToLanding();
+}
+
+function backToChatOptions() {
+    chatApp.backToChatOptions();
 }
 
 function cancelSearch() {

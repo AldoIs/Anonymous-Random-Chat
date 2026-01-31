@@ -14,14 +14,64 @@
             <h1>Anonymous Chat</h1>
             <p class="subtitle">Connect with random people anonymously</p>
             
+            <!-- User Statistics -->
+            <div class="user-stats">
+                <div class="stat-item">
+                    <span class="stat-number" id="activeChatters">0</span>
+                    <span class="stat-label">Chatting</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="waitingUsers">0</span>
+                    <span class="stat-label">Waiting</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="totalUsers">0</span>
+                    <span class="stat-label">Online</span>
+                </div>
+            </div>
+            
             <div class="disclaimer">
                 <strong>🔒 Privacy First</strong><br>
                 No personal data required. You are completely anonymous.
             </div>
             
-            <button class="btn" onclick="startChat()">Start Chat</button>
+            <button class="btn" onclick="showChatOptions()">Start Chat</button>
         </div>
 
+        <!-- Chat Options Screen -->
+        <div id="chatOptions" class="chat-options hidden">
+            <div class="logo">💬</div>
+            <h2>Choose Chat Type</h2>
+            
+            <div class="chat-type-buttons">
+                <div class="chat-option" onclick="startOneOnOne()">
+                    <div class="option-icon">👥</div>
+                    <h3>1-on-1 Chat</h3>
+                    <p>Chat with a random person privately</p>
+                </div>
+                
+                <div class="chat-option" onclick="showStaticRooms()">
+                    <div class="option-icon">🏛️</div>
+                    <h3>Group Rooms</h3>
+                    <p>Join public chat rooms</p>
+                </div>
+            </div>
+            
+            <button class="btn btn-secondary" onclick="backToLanding()">Back</button>
+        </div>
+        
+        <!-- Static Rooms Screen -->
+        <div id="staticRooms" class="static-rooms hidden">
+            <div class="logo">💬</div>
+            <h2>Choose a Room</h2>
+            
+            <div class="rooms-list" id="roomsList">
+                <!-- Rooms will be populated by JavaScript -->
+            </div>
+            
+            <button class="btn btn-secondary" onclick="backToChatOptions()">Back</button>
+        </div>
+        
         <!-- Waiting Screen -->
         <div id="waiting" class="waiting hidden">
             <div class="logo">💬</div>
@@ -35,7 +85,8 @@
         <div id="chatInterface" class="chat-container hidden">
             <div class="chat-header">
                 <div class="partner-info">
-                    Chatting with: <span class="user-alias" id="partnerAlias">Anonymous</span>
+                    <span id="chatType">Chat</span>: <span class="user-alias" id="partnerAlias">Anonymous</span>
+                    <span class="room-users" id="roomUsers"></span>
                 </div>
                 <div>You are: <span class="user-alias" id="userAlias">Anonymous</span></div>
             </div>
@@ -59,7 +110,7 @@
             </div>
             
             <div class="chat-controls">
-                <button class="btn btn-secondary" onclick="nextChat()">Next Chat</button>
+                <button class="btn btn-secondary" id="nextChatBtn" onclick="nextChat()">Next Chat</button>
                 <button class="btn btn-danger" onclick="endChat()">End Chat</button>
             </div>
         </div>
