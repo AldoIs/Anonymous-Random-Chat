@@ -1,7 +1,8 @@
 # Anonymous Random Chat (MVP)
 
 A minimal, functional anonymous random chat prototype that connects two random users for real-time conversations without requiring accounts or storing personal data.
-
+Test it! 
+https://fightchat.onrender.com/
 ## Features
 
 - ✅ Anonymous chat with randomly generated aliases
